@@ -18,6 +18,7 @@ import { ListmonkDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-sett
 import { GmbSettingsDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/gmb.settings.dto';
 import { FarcasterDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/farcaster.dto';
 import { FacebookDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/facebook.dto';
+import { TumblrSettingsDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/tumblr.dto';
 
 export type ProviderExtension<T extends string, M> = { __type: T } & M;
 export type AllProvidersSettings =
@@ -46,6 +47,7 @@ export type AllProvidersSettings =
   | ProviderExtension<'mastodon', None>
   | ProviderExtension<'bluesky', None>
   | ProviderExtension<'telegram', None>
+  | ProviderExtension<'tumblr', TumblrSettingsDto>
   | ProviderExtension<'nostr', None>
   | ProviderExtension<'vk', None>;
 
@@ -72,6 +74,7 @@ export const allProviders = (setEmpty?: any) => {
     { value: HashnodeSettingsDto, name: 'hashnode' },
     { value: ListmonkDto, name: 'listmonk' },
     { value: GmbSettingsDto, name: 'gmb' },
+    { value: TumblrSettingsDto, name: 'tumblr' },
     { value: FarcasterDto, name: 'wrapcast' },
     { value: FacebookDto, name: 'facebook' },
     { value: setEmpty, name: 'threads' },

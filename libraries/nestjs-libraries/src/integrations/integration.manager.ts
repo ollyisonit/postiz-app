@@ -30,6 +30,7 @@ import { WordpressProvider } from '@gitroom/nestjs-libraries/integrations/social
 import { ListmonkProvider } from '@gitroom/nestjs-libraries/integrations/social/listmonk.provider';
 import { GmbProvider } from '@gitroom/nestjs-libraries/integrations/social/gmb.provider';
 import { SocialAbstract } from '@gitroom/nestjs-libraries/integrations/social.abstract';
+import { TumblrProvider } from './social/tumblr.provider';
 
 export const socialIntegrationList: Array<SocialAbstract & SocialProvider> = [
   new XProvider(),
@@ -59,6 +60,7 @@ export const socialIntegrationList: Array<SocialAbstract & SocialProvider> = [
   new HashnodeProvider(),
   new WordpressProvider(),
   new ListmonkProvider(),
+  new TumblrProvider(),
   // new MastodonCustomProvider(),
 ];
 

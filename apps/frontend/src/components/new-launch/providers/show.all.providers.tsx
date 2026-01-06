@@ -33,7 +33,7 @@ import { PostComment } from '@gitroom/frontend/components/new-launch/providers/h
 import WordpressProvider from '@gitroom/frontend/components/new-launch/providers/wordpress/wordpress.provider';
 import ListmonkProvider from '@gitroom/frontend/components/new-launch/providers/listmonk/listmonk.provider';
 import GmbProvider from '@gitroom/frontend/components/new-launch/providers/gmb/gmb.provider';
-import tumblrProvider from '@gitroom/frontend/components/new-launch/providers/tumblr/tumblr.provider';
+import TumblrProvider from '@gitroom/frontend/components/new-launch/providers/tumblr/tumblr.provider';
 
 export const Providers = [
   {
@@ -146,7 +146,7 @@ export const Providers = [
   },
   {
     identifier: 'tumblr',
-    component: tumblrProvider
+    component: TumblrProvider
   }
 ];
 export const ShowAllProviders = forwardRef((props, ref) => {

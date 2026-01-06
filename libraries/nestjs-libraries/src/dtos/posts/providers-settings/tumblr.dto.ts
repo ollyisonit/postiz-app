@@ -6,17 +6,17 @@ import { MediaDto } from '@gitroom/nestjs-libraries/dtos/media/media.dto';
 import { Type } from 'class-transformer';
 
 export class TumblrTagsSettings {
-  @MaxLength(140)
   @IsString()
-  @Matches('[^#,]*')
-  value: string
+  value: string;
+
+  @IsString()
+  label: string;
 }
 
 export class TumblrSettingsDto {  
   @IsArray()
   @IsOptional()
   @ValidateNested()
-  @ArrayMaxSize(30)
   @Type(() => TumblrTagsSettings)
   tags: TumblrTagsSettings[];
 

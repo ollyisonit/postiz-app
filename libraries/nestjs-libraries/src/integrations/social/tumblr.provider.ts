@@ -42,7 +42,7 @@ export class TumblrProvider extends SocialAbstract implements SocialProvider {
     return undefined;
   }
 
-  public async getUserInfo(accessToken: string): Promise<{name: string; picture: string; blogs: string[], primary_blog: string}> {
+  async getUserInfo(accessToken: string): Promise<{name: string; picture: string; blogs: string[], primary_blog: string}> {
     const user_info_request = await (
       await fetch('https://api.tumblr.com/v2/user/info',{
         method: 'GET',
@@ -71,6 +71,13 @@ export class TumblrProvider extends SocialAbstract implements SocialProvider {
       blogs: user_info.blogs.map((blog: {name: string}) => blog.name),
       primary_blog: primary_blog.name
     }
+  }
+
+  // @Tool({ description: 'Channels', dataSchema: [] })
+  // Get list of user's blogs, always with the primary blog first.
+  public async getBlogs(accessToken: string, params: any, id: string): Promise<string[]> {
+    const userInfo = await(this.getUserInfo(accessToken))
+    return [userInfo.primary_blog, ...userInfo.blogs.filter(blog => blog != userInfo.primary_blog)]
   }
 
   async refreshToken(refresh_token: string): Promise<AuthTokenDetails> {
@@ -181,7 +188,7 @@ export class TumblrProvider extends SocialAbstract implements SocialProvider {
 
     const formData = new FormData();
     formData.append('content', JSON.stringify(content_blocks));
-    formData.append('tags', firstPost.settings.tags.join(","));
+    formData.append('tags', firstPost.settings.tags.map(tag => tag.value).join(","));
     formData.append('interactibility_reblog', firstPost.settings.enable_reblogs ? 'everyone' : 'noone');
     firstPost.media?.forEach(m => {
       formData.append(m.path, new Blob([fs.readFileSync(m.path) as BlobPart]), m.path)

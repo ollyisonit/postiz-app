@@ -26,12 +26,6 @@ export class TumblrProvider extends SocialAbstract implements SocialProvider {
   editor = 'normal' as const;
   dto = TumblrSettingsDto;
 
-  REDIRECT_URL = `${
-            process?.env.FRONTEND_URL?.indexOf('https') == -1
-              ? `https://redirectmeto.com/${process?.env.FRONTEND_URL}`
-              : `${process?.env.FRONTEND_URL}`
-          }/integrations/social/tumblr`;
-
   override handleErrors(body: string):
     | {
       type: 'refresh-token' | 'bad-body';
@@ -118,7 +112,6 @@ export class TumblrProvider extends SocialAbstract implements SocialProvider {
       url: 'https://www.tumblr.com/oauth2/authorize?' + new URLSearchParams({
         client_id: process.env.TUMBLR_CLIENT_ID,
         response_type: "code",
-        redirect_uri: this.REDIRECT_URL,
         state,
         scope: this.scopes.join(' '),
       }).toString(),
@@ -136,7 +129,6 @@ export class TumblrProvider extends SocialAbstract implements SocialProvider {
           code: params.code,
           client_id: process.env.TUMBLR_CLIENT_ID,
           client_secret: process.env.TUMBLR_CLIENT_SECRET,
-          redirect_uri: this.REDIRECT_URL
         })
       }))
 

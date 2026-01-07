@@ -14,8 +14,8 @@ const TumblrComponent: FC = () => {
   const form = useSettings();
   return (
     <div>
+      <TumblrBlogSelect {...form.register('blog')} />
       <TumblrTagsSelect label="Tags" {...form.register('tags')} />
-      {/* <TumblrBlogSelect {...form.register('blog')} /> */}
     </div>
   );
 };

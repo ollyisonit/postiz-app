@@ -179,7 +179,10 @@ export class TumblrProvider extends SocialAbstract implements SocialProvider {
 
     const formData = new FormData();
     formData.append('content', JSON.stringify(content_blocks));
-    formData.append('tags', firstPost.settings.tags.map(tag => tag.value).join(","));
+    console.log(firstPost.settings)
+    if (firstPost.settings.tags) {
+      formData.append('tags', firstPost.settings.tags.map(tag => tag.value).join(","));
+    }
     formData.append('interactibility_reblog', firstPost.settings.enable_reblogs ? 'everyone' : 'noone');
     firstPost.media?.forEach(m => {
       formData.append(m.path, new Blob([fs.readFileSync(m.path) as BlobPart]), m.path)

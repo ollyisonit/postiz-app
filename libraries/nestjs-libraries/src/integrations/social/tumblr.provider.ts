@@ -28,16 +28,136 @@ export class TumblrProvider extends SocialAbstract implements SocialProvider {
 
   override handleErrors(body: string):
     | {
-      type: 'refresh-token' | 'bad-body';
+      type: 'refresh-token' | 'bad-body' | 'retry';
       value: string;
     }
     | undefined {
-    return undefined;
+      const response_body = JSON.parse(body)
+      console.log("RECEIVED RESPONSE: " + body + "\n\n\n\n\n\n\n\n\n\n\n\n")
+
+      const http_status = response_body.meta.status
+      if (http_status == 200 || http_status == 201) {
+        return undefined
+      }
+
+      const error_code = response_body.errors[0].code
+      const error_title = response_body.errors[0].title 
+
+      if (http_status == 400) {
+        switch (error_code) {
+          case 8001:
+            return {
+              type: 'bad-body',
+              value: `Invalid NPF JSON parameter (400.8001): ${error_title}`
+            }
+          case 8002:
+            return {
+              type: 'bad-body',
+              value: `Invalid reblog parent post (400.8002): ${error_title}`
+            }
+          case 8005:
+            return {
+              type: 'bad-body',
+              value: `Uploaded media in invalid format (400.8005): ${error_title}`
+            }
+          case 8016:
+            return {
+              type: 'bad-body',
+              value: `Invalid answer content or layout (400.8016): ${error_title}`
+            }
+          default:
+            return {
+              type: 'bad-body',
+              value: `Unspecified malformed request body (400.${error_code}): ${error_title}`
+            }
+        }
+      }
+
+      if (http_status == 401) {
+        return {
+          type: 'refresh-token',
+          value: "Token expired"
+        }
+      }
+
+      if (http_status == 403) {
+        switch (error_code) {
+          case 8004:
+            return {
+              type: 'retry',
+              value: "User cannot upload more media today (403.8004)"
+            }
+          case 8008:
+            return {
+              type: 'retry',
+              value: "User cannot upload video as part of reblog content (403.8008)"
+            }
+          case 8010:
+            return {
+              type: 'retry',
+              value: "User cannot upload video while another video is still transcoding (403.8010)"
+            }
+          case 8011:
+            return {
+              type: 'retry',
+              value: "User cannot upload more videos today (403.8011)"
+            }
+          case 8022:
+            return {
+              type: 'retry',
+              value: "Queue limit reached (403.8022)"
+            }
+          case 8023:
+            return {
+              type: 'retry',
+              value: "Daily post limit reached (403.8023)"
+            }
+        }
+      }
+
+      if (http_status == "404") {
+        return {
+          type: 'bad-body',
+          value: `404 Error: ${error_title}`
+        }
+      }
+
+      if (http_status == "500") {
+        switch (error_code) {
+          case 8006:
+            return {
+              type: 'retry',
+              value: `Unknown upload error (not video related) (500.8006): ${error_title}`
+            }
+          case 8009:
+            return {
+              type: 'retry',
+              value: `Unknown upload error (video related) (500.8009): ${error_title}`
+            }
+          default:
+            return {
+              type: 'retry',
+              value: `Internal server error (500): ${error_title}`
+            }
+        }
+      }
+
+      if (http_status == "503") {
+        return {
+          type: 'retry',
+          value: `Service unavailable, posting is currently disabled (503): ${error_title}`
+        }
+      }
+
+      return {
+        type: 'bad-body',
+        value: "Unhandled exception from Tumblr API: " + body
+      }
   }
 
   async getUserInfo(accessToken: string): Promise<{name: string; picture: string; blogs: string[], primary_blog: string}> {
     const user_info_request = await (
-      await fetch('https://api.tumblr.com/v2/user/info',{
+      await this.fetch('https://api.tumblr.com/v2/user/info',{
         method: 'GET',
         headers: {
           Authorization: `Bearer ${accessToken}`
@@ -50,7 +170,7 @@ export class TumblrProvider extends SocialAbstract implements SocialProvider {
     const primary_blog: {name: string; primary: boolean;} = user_info.blogs.filter((blog: { primary: boolean; }) => blog.primary)[0]
 
     const avatar_request = await (
-      await fetch(`https://api.tumblr.com/v2/blog/${primary_blog.name}/avatar/64`, {
+      await this.fetch(`https://api.tumblr.com/v2/blog/${primary_blog.name}/avatar/64`, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${accessToken}`
@@ -189,7 +309,7 @@ export class TumblrProvider extends SocialAbstract implements SocialProvider {
     })
 
     const response = await (
-      await fetch(`https://api.tumblr.com/v2/blog/${firstPost.settings.blog}/posts`, {
+      await this.fetch(`https://api.tumblr.com/v2/blog/${firstPost.settings.blog}/posts`, {
         method: "POST",
         headers: {
           'Content-Type': "multipart/form-data",
@@ -201,7 +321,7 @@ export class TumblrProvider extends SocialAbstract implements SocialProvider {
     ).json()
 
     const post_info = await (
-      await fetch (`https://api.tumblr.com/v2/blog/${firstPost.settings.blog}/posts`,
+      await this.fetch (`https://api.tumblr.com/v2/blog/${firstPost.settings.blog}/posts`,
         {
           method: 'GET',
           headers: {

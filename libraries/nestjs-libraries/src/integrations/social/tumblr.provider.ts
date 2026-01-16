@@ -9,6 +9,7 @@ import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorato
 import { TumblrSettingsDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/tumblr.dto';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import fs from 'fs';
+import { json } from 'stream/consumers';
 
 @Rules(
   'Tumblr can have 1 video per post (up to 10 minutes / 500 MB) or 30 photos.'
@@ -194,35 +195,41 @@ export class TumblrProvider extends SocialAbstract implements SocialProvider {
   }
 
   async refreshToken(refresh_token: string): Promise<AuthTokenDetails> {
-    const {
-      access_token: accessToken,
-      refresh_token: refreshToken,
-      expires_in
+    const refresh_request = {
+      "grant_type": "refresh_token",
+      "client_id": process.env.TUMBLR_CLIENT_ID,
+      "refresh_token": refresh_token,
+      "client_secret": process.env.TUMBLR_CLIENT_SECRET,
+    }
+
+    console.log("Sending refresh request: " + JSON.stringify(refresh_request))
+
+    const refresh_response: {
+      access_token: string,
+      refresh_token: string,
+      expires_in: number
     } = await (
       await this.fetch('https://api.tumblr.com/v2/oauth2/token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
         },
-        body: new URLSearchParams( {
-          grant_type: 'refresh_token',
-          refresh_token,
-          client_id: process.env.TUMBLR_CLIENT_ID!,
-          client_secret: process.env.TUMBLR_CLIENT_SECRET!,
-        }),
+        body: new URLSearchParams(refresh_request),
       })
     ).json();
 
-    const {name, picture} = await(this.getUserInfo(accessToken));
+    console.log("Received refresh response: " + JSON.stringify(refresh_response))
+
+    const {name, picture} = await(this.getUserInfo(refresh_response.access_token));
 
     return {
       id: name,
       name: name,
       username: name,
       picture,
-      accessToken,
-      refreshToken,
-      expiresIn: expires_in
+      accessToken: refresh_response.access_token,
+      refreshToken: refresh_response.refresh_token,
+      expiresIn: refresh_response.expires_in
     }
   }
 
@@ -297,22 +304,28 @@ export class TumblrProvider extends SocialAbstract implements SocialProvider {
       })
     }
 
-    const formData = new FormData();
-    formData.append('content', JSON.stringify(content_blocks));
-    console.log(firstPost.settings)
-    if (firstPost.settings.tags) {
-      formData.append('tags', firstPost.settings.tags.map(tag => tag.value).join(","));
+    const postJSON = {
+      'content': content_blocks,
+      'tags': firstPost.settings.tags ? firstPost.settings.tags.map(tag => tag.value).join(",") : "",
+      'interactability_reblog': firstPost.settings.enable_reblogs ? 'everyone' : 'noone'
     }
-    formData.append('interactibility_reblog', firstPost.settings.enable_reblogs ? 'everyone' : 'noone');
+
+    const formData = new FormData();
+
+    formData.append('json',  JSON.stringify(postJSON))
+
     firstPost.media?.forEach(m => {
+      console.log(`Adding media from ${m.path}`)
       formData.append(m.path, new Blob([fs.readFileSync(m.path) as BlobPart]), m.path)
     })
+
+    const formDataText = await new Response(formData).text()
+    // console.log(`Sending post with formData:\n ${formDataText}`)
 
     const response = await (
       await this.fetch(`https://api.tumblr.com/v2/blog/${firstPost.settings.blog}/posts`, {
         method: "POST",
         headers: {
-          'Content-Type': "multipart/form-data",
           Authorization: `Bearer ${accessToken}`
         },
         body: formData
@@ -320,29 +333,24 @@ export class TumblrProvider extends SocialAbstract implements SocialProvider {
       )
     ).json()
 
+    const createdPostID = response.response.id
+
     const post_info = await (
-      await this.fetch (`https://api.tumblr.com/v2/blog/${firstPost.settings.blog}/posts`,
+      await this.fetch (`https://api.tumblr.com/v2/blog/${firstPost.settings.blog}/posts/${createdPostID}`,
         {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${accessToken}`
-          },
-          body: new URLSearchParams(
-            {
-              api_key: process.env.TUMBLR_CLIENT_ID,
-              id: response.id
-            }
-          )
+          }
         }
       )
     ).json()
 
-
     return [
       {
         id: firstPost.id,
-        postId: response.id,
-        releaseURL: post_info.posts.get(0).post_url,
+        postId: createdPostID,
+        releaseURL: post_info.response.post_url,
         status: 'success'
       }
     ]
